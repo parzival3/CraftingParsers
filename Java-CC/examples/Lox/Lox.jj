@@ -87,83 +87,10 @@ TOKEN: {
        <NUMBER: (["0"-"9"])+ (".")? (["0"-"9"])* >
 }
 
-Expr Expression(): {Expr e;} {
-     e=Equality() <EOF> {return e;}
-}
-
-Binary.operator EQUALS_OP() : {} {
-      <BANG_EQUAL> {return Binary.operator.BANG_EQUAL;}
-    | <EQUAL_EQUAL> {return Binary.operator.EQUAL_EQUAL;}
-}
-
-Expr Equality(): {Expr e1; Expr e2; Binary.operator op;} {
-     e1 = Comparison() (
-        op = EQUALS_OP()
-        e2 = Comparison()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-Binary.operator COMPARISON_OP() : {} {
-     <GRATER> {return Binary.operator.GRATER;}
-   | <GRATER_EQUAL> {return Binary.operator.GRATER_EQUAL;}
-   | <LESS> {return Binary.operator.LESS;}
-   | <LESS_EQUAL> {return Binary.operator.LESS_EQUAL;}
-}
-
-Expr Comparison(): {Expr e1; Expr e2;} {
-     e1 = Term() (
-        op = COMPARISON_OP()
-        e2 = Term()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-Binary.operator ADD_OP() : {} {
-     <MINUS> {return Binary.operator.MINUS;}
-   | <PLUS> {return Binary.operator.PLUS;}
-}
-
-Expr Term(): {Expr e1; Expr e2;} {
-     e1 = Factor() (
-        op = ADD_OP()
-        e2 = Factor()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-Binary.operator MUL_OP() : {} {
-      <STAR> {return Binary.operator.STAR;}
-    | <SLASH> {return Binary.operator.SLASH;}
-}
-
-Expr Factor(): {Expr e1; Expr e2;} {
-     e1 = Unary() (
-        op = MUL_OP()
-        e2 = Unary()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-Unary.operator UNARY_OP() : {} {
-      <BANG> {return Unary.operator.BANG;}
-    | <MINUS> {return Unary.operator.MINUS;}
-}
-
-Expr Unary(): {Expr e1;} {
-     (
-        op = UNARY_OP()
-        e1 = Unary()
-        {e1 = new Unary(e1, op);}
-    )+ |  e1 = Primary()
-    {return e1;}
-}
-
-Expr Primary(): {} {
-      v = <NUMBER> {return new Literal(v.image);}
-     | s = <STRING> {return new Literal(s.image);}
-     | t = <TRUE> {return new Literal(t.image);}
-     | f = <FALSE> {return new Literal(f.image);}
-     | <NIL> {return new Literal(Null);}
-     | <LEFT_PAREN> e = Term() <RIGHT_PAREN> {return e;}
-}
+Expr Expression(): {} { Equality() <EOF>           }
+void Equality(): {} { Comparison() ((<BANG_EQUAL> | <EQUAL_EQUAL>) Comparison())* }
+void Comparison(): {} {Term() ((<GRATER> | <GRATER_EQUAL> | <LESS> | <LESS_EQUAL> ) Term())* }
+void Term(): {} { Factor() ((<MINUS> | <PLUS>) Factor())*   }
+void Factor(): {} { Unary() ((<STAR> | <SLASH>) Unary())*   }
+void Unary(): {} { ( <BANG> | <MINUS> )+ |  Primary() }
+void Primary(): {} { <NUMBER> | <STRING> | <TRUE> | <FALSE> | <NIL> | <LEFT_PAREN> Term() <RIGHT_PAREN> }
