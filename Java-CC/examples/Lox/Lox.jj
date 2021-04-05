@@ -1,0 +1,159 @@
+PARSER_BEGIN(SyntaxChecker)
+
+public class SyntaxChecker {
+    public static void main(String[] args) {
+        try {
+            new SyntaxChecker(new java.io.StringReader(args[0])).Expression();
+            System.out.println("Syntax is okay");
+        } catch (Throwable e) {
+            // Catching Throwable is ugly but JavaCC throws Error objects!
+            System.out.println("Syntax check failed: " + e.getMessage());
+        }
+    }
+}
+
+
+abstract class Expr {}
+
+class Binary extends Expr {
+    Binary(Expr left, Token operator, Expr right) {
+      this.left = left;
+      this.operator = operator;
+      this.right = right;
+    }
+    final Expr left;
+    final Token operator;
+    final Expr right;
+}
+
+class Literal extends Expr {
+    Object value;
+    Literal(Object value) {
+      this.value = value;
+    }
+}
+
+class Unary extends Expr {
+    Unary(Token operator, Expr right) {
+      this.operator = operator;
+      this.right = right;
+    }
+    final Token operator;
+    final Expr right;
+}
+
+PARSER_END(SyntaxChecker)
+
+SKIP:  { " " | "\t" | "\n" | "\r" }
+
+TOKEN: {
+       <LEFT_PAREN: "(">  |
+       <RIGHT_PAREN: ")"> |
+       <LEFT_BRACE: "{">  |
+       <RIGHT_BRACE: "}">  |
+       <COMMA: ",">  |
+       <DOT: ".">  |
+       <MINUS: "-">  |
+       <PLUS: "+">  |
+       <SEMICOLON: ";">  |
+       <SLASH: "/">  |
+       <STAR: "*">        |
+       <BANG: "!">        |
+       <BANG_EQUAL: "!=">        |
+       <EQUAL: "=">        |
+       <EQUAL_EQUAL: "==">        |
+       <GRATER: ">">        |
+       <GRATER_EQUAL: ">=">        |
+       <LESS: "<">        |
+       <LESS_EQUAL: "<=">        |
+       <STRING: "\"" (<ESC> | ~["\"","\\","\n","\r"])* "\"" > |
+       < #ESC: "\\" ["n","t","b","r","f","\\","'","\""] > |
+       <AND: "and">        |
+       <CLASS: "class">        |
+       <FALSE: "false">        |
+       <FOR: "for">        |
+       <FUN: "fun">        |
+       <IF: "if">        |
+       <NIL: "nil">        |
+       <OR: "or">        |
+       <PRINT: "print">        |
+       <RETURN: "return">        |
+       <SUPER: "super">        |
+       <THIS: "this">        |
+       <TRUE: "true">        |
+       <VAR: "var">        |
+       <WHILE: "while">        |
+       <IDENTIFIER: (["a"-"z","A"-"Z","_"]) (["a"-"z","A"-"Z","_","0"-"9"])* >        |
+       <NUMBER: (["0"-"9"])+ (".")? (["0"-"9"])* >
+}
+
+Expr Expression(): {Expr e;} {
+     e=Equality() <EOF> {return e;}
+}
+
+Binary.operator EQUALS_OP() : {} {
+      <BANG_EQUAL> {return Binary.operator.BANG_EQUAL;}
+    | <EQUAL_EQUAL> {return Binary.operator.EQUAL_EQUAL;}
+}
+
+Expr Equality(): {Expr e1; Expr e2; Binary.operator op} {
+     e1 = Comparison() (
+        op = EQUALS_OP()
+        e2 = Comparison()
+        {e1 = new Binary(e1, op, e2)}
+    )* {return e1;}
+}
+
+Binary.operator COMPARISON_OP() : {} {
+     <GRATER> {return Binary.operator.GRATER;}
+   | <GRATER_EQUAL> {return Binary.operator.GRATER_EQUAL;}
+   | <LESS> {return Binary.operator.LESS;}
+   | <LESS_EQUAL> {return Binary.operator.LESS_EQUAL;}
+}
+
+Expr Comparison(): {Expr e1; Expr e2;} {
+     e1 = Term() (
+        op = COMPARSION_OP()
+        e2 = Term()
+        {e1 = new Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+Binary.operator ADD_OP() : {} {
+     <MINUS> {return Binary.operator.MINUS;}
+   | <PLUS> {return Binary.operator.PLUS;}
+}
+
+Expr Term(): {Expr e1; Expr e2;} {
+     e1 = Factor() (
+        op = ADD_OP()
+        e2 = Factor()
+        {e1 = new Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+Binary.operator MUL_OP() : {} {
+      <STAR> {return Binary.operator.STAR;}
+    | <SLASH> {return Binary.operator.SLASH;}
+}
+
+Expr Factor(): {Expr e1; Expr e2;} {
+     e1 = Unary() (
+        op = MUL_OP()
+        e2 = Unary()
+        {e1 = new Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+Unary.operator UNARY_OP() : {} {
+      <BANG> {return Unary.operator.BANG;}
+    | <MINUS> {return Unary.operator.MINUS;}
+}
+
+Expr Unary(): {Expr e1;} {
+     ( <BANG> | <MINUS> )+ |  Primary()
+}
+
+Expr Primary(): {} {
+     <NUMBER> | <STRING> | <TRUE> | <FALSE> | <NIL> | <LEFT_PAREN> Term() <RIGHT_PAREN>
+}
