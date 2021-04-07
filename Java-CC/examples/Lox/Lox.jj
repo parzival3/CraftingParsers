@@ -3,43 +3,13 @@ PARSER_BEGIN(SyntaxChecker)
 public class SyntaxChecker {
     public static void main(String[] args) {
         try {
-            new SyntaxChecker(new java.io.StringReader(args[0])).Expression();
+            Expr hello = new SyntaxChecker(new java.io.StringReader(args[0])).Expression();
             System.out.println("Syntax is okay");
         } catch (Throwable e) {
             // Catching Throwable is ugly but JavaCC throws Error objects!
             System.out.println("Syntax check failed: " + e.getMessage());
         }
     }
-}
-
-
-abstract class Expr {}
-
-class Binary extends Expr {
-    Binary(Expr left, Token operator, Expr right) {
-      this.left = left;
-      this.operator = operator;
-      this.right = right;
-    }
-    final Expr left;
-    final Token operator;
-    final Expr right;
-}
-
-class Literal extends Expr {
-    Object value;
-    Literal(Object value) {
-      this.value = value;
-    }
-}
-
-class Unary extends Expr {
-    Unary(Token operator, Expr right) {
-      this.operator = operator;
-      this.right = right;
-    }
-    final Token operator;
-    final Expr right;
 }
 
 PARSER_END(SyntaxChecker)
@@ -62,8 +32,8 @@ TOKEN: {
        <BANG_EQUAL: "!=">        |
        <EQUAL: "=">        |
        <EQUAL_EQUAL: "==">        |
-       <GRATER: ">">        |
-       <GRATER_EQUAL: ">=">        |
+       <GREATER: ">">        |
+       <GREATER_EQUAL: ">=">        |
        <LESS: "<">        |
        <LESS_EQUAL: "<=">        |
        <STRING: "\"" (<ESC> | ~["\"","\\","\n","\r"])* "\"" > |
@@ -87,10 +57,83 @@ TOKEN: {
        <NUMBER: (["0"-"9"])+ (".")? (["0"-"9"])* >
 }
 
-Expr Expression(): {} { Equality() <EOF>           }
-void Equality(): {} { Comparison() ((<BANG_EQUAL> | <EQUAL_EQUAL>) Comparison())* }
-void Comparison(): {} {Term() ((<GRATER> | <GRATER_EQUAL> | <LESS> | <LESS_EQUAL> ) Term())* }
-void Term(): {} { Factor() ((<MINUS> | <PLUS>) Factor())*   }
-void Factor(): {} { Unary() ((<STAR> | <SLASH>) Unary())*   }
-void Unary(): {} { ( <BANG> | <MINUS> )+ |  Primary() }
-void Primary(): {} { <NUMBER> | <STRING> | <TRUE> | <FALSE> | <NIL> | <LEFT_PAREN> Term() <RIGHT_PAREN> }
+Expr Expression(): {Expr e;} {
+     e=Equality() <EOF> {return e;}
+}
+
+TokenType EQUALS_OP() : {} {
+      <BANG_EQUAL> {return TokenType.BANG_EQUAL;}
+    | <EQUAL_EQUAL> {return TokenType.EQUAL_EQUAL;}
+}
+
+Expr Equality(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = Comparison() (
+        op = EQUALS_OP()
+        e2 = Comparison()
+        {e1 = new Expr.Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType COMPARISON_OP() : {} {
+     <GREATER> {return TokenType.GREATER;}
+   | <GREATER_EQUAL> {return TokenType.GREATER_EQUAL;}
+   | <LESS> {return TokenType.LESS;}
+   | <LESS_EQUAL> {return TokenType.LESS_EQUAL;}
+}
+
+Expr Comparison(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = Term() (
+        op = COMPARISON_OP()
+        e2 = Term()
+        {e1 = new Expr.Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType ADD_OP() : {} {
+     <MINUS> {return TokenType.MINUS;}
+   | <PLUS> {return TokenType.PLUS;}
+}
+
+Expr Term(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = Factor() (
+        op = ADD_OP()
+        e2 = Factor()
+        {e1 = new Expr.Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType MUL_OP() : {} {
+      <STAR> {return TokenType.STAR;}
+    | <SLASH> {return TokenType.SLASH;}
+}
+
+Expr Factor(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = Unary() (
+        op = MUL_OP()
+        e2 = Unary()
+        {e1 = new Expr.Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType UNARY_OP() : {} {
+      <BANG> {return TokenType.BANG;}
+    | <MINUS> {return TokenType.MINUS;}
+}
+
+Expr Unary(): {Expr e1; TokenType op;} {
+     (
+        op = UNARY_OP()
+        e1 = Unary()
+        {e1 = new Expr.Unary(op, e1);}
+    )+ |  e1 = Primary()
+    {return e1;}
+}
+
+Expr Primary(): {Expr e1; Token t;} {
+      t = <NUMBER> { e1 = new Expr.Literal(Double.parseDouble(t.image)); return e1;}
+    | t = <STRING> { e1 = new Expr.Literal(t.image); return e1; }
+    | <TRUE> { e1 = new Expr.Literal(true); return e1;}
+    | <FALSE> <TRUE> { e1 = new Expr.Literal(true); return e1; }
+    | <NIL>{ e1 = new Expr.Literal(null); return e1;}
+    | <LEFT_PAREN> e1 = Term()  <RIGHT_PAREN> {return e1;}
+}
