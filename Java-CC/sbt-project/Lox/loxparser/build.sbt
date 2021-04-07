@@ -12,7 +12,7 @@ lazy val javacc = project.dependsOn(ast).aggregate(ast).enablePlugins(JavaCCPlug
     scalaVersion := scala3Version,
 )
 
-lazy val test_tree = project.dependsOn(javacc, ast).aggregate(ast, javacc)
+lazy val root = project.dependsOn(javacc, ast).aggregate(ast, javacc)
   .in(file("."))
   .settings (
     name := "javcc-scala",
