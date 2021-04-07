@@ -19,7 +19,11 @@ jobs:
       with:
         java-version: '11'
         distribution: 'adopt'
+    - name: Install package
+      run: |
+        sudo apt-get -y install javacc
+        javacc -v
     - name: Run tests
       working-directory: Java-CC/sbt-project/Lox/loxparser
       run: sbt javacc
-         | svt test
+         | sbt test
