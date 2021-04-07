@@ -12,10 +12,10 @@ lazy val javacc = project.dependsOn(ast).aggregate(ast).enablePlugins(JavaCCPlug
     scalaVersion := scala3Version,
 )
 
-lazy val root = project.dependsOn(javacc, ast).aggregate(ast, javacc)
+lazy val loxparser = project.dependsOn(javacc, ast).aggregate(ast, javacc)
   .in(file("."))
   .settings (
-    name := "javcc-scala",
+    name := "loxparser",
     version := projectVersion,
     scalaVersion := scala3Version,
     libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
