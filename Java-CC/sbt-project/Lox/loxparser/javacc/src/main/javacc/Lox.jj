@@ -120,13 +120,15 @@ TokenType UNARY_OP() : {} {
     | <MINUS> {return TokenType.MINUS;}
 }
 
+Expr simbol_unary(): {Expr e1; TokenType op;} {
+      op = UNARY_OP()
+      e1 = unary()
+      {return new Unary(op, e1);}
+}
+
 Expr unary(): {Expr e1; TokenType op;} {
-     (
-        op = UNARY_OP()
-        e1 = unary()
-        {e1 = new Unary(op, e1);}
-    )+ |  e1 = primary()
-    {return e1;}
+       e1 = simbol_unary() {return e1;}
+    |  e1 = primary() {return e1;}
 }
 
 Expr primary(): {Expr e1; Token t;} {
