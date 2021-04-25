@@ -19,15 +19,15 @@ jobs:
       with:
         java-version: '11'
         distribution: 'adopt'
+
     - name: Install package
       run: |
         sudo apt-get -y install javacc
-        
-    - name: Compile Lox grammar 
-      working-directory: Java-CC/sbt-project/Lox/loxparser
+
+    - name: Run javacc
+      working-directory: Java-CC/sbt-project/ScaLoxCC
       run: sbt javacc
-      
-    - name: Run test 
-      working-directory: Java-CC/sbt-project/Lox/loxparser
+
+    - name: Run tests
+      working-directory: Java-CC/sbt-project/ScaLoxCC
       run: sbt test
-    

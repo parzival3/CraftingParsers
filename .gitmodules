@@ -1,0 +1,3 @@
+[submodule "Java-CC/sbt-project/ScaLoxCC"]
+	path = Java-CC/sbt-project/ScaLoxCC
+	url = git@github.com:parzival3/ScaLoxCC
